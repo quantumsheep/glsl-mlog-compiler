@@ -12,5 +12,5 @@ void main() {
 
 # How to use
 ```shell
-python3 main.py example.glsl
+python3 . example.glsl
 ```
