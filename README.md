@@ -8,7 +8,7 @@ void main() {
   gl_FragColor = vec4(atan(st.y, st.x), sin(st.y), cos(st.x), 1.0);
 }
 ```
-![Example 1](https://i.imgur.com/biLiCM7.png)
+![Example 1](https://i.imgur.com/ZVw7w8X.png)
 
 # How to use
 ```shell
