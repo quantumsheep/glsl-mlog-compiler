@@ -151,6 +151,7 @@ class Scope:
                 GLSLFunction('atan', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'atan:',
                     f'    op atan __f_return_value __f_args_0',
+                    f'    op mul __f_return_value __f_return_value 0.0174533',
                     f'    set @counter __f_atan_callback',
                 ]),
             ],
