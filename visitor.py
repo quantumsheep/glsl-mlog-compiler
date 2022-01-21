@@ -113,14 +113,15 @@ class Scope:
             'sin': [
                 GLSLFunction('sin', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'sin:',
+                    f'    op mul __f_args_0 __f_args_0 57.29577951308232',
                     f'    op sin __f_return_value __f_args_0',
-                    f'    op mul __f_return_value __f_return_value 57.2958',
                     f'    set @counter __f_sin_callback',
                 ]),
             ],
             'cos': [
                 GLSLFunction('cos', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'cos:',
+                    f'    op mul __f_args_0 __f_args_0 57.29577951308232',
                     f'    op cos __f_return_value __f_args_0',
                     f'    set @counter __f_cos_callback',
                 ]),
@@ -128,6 +129,7 @@ class Scope:
             'tan': [
                 GLSLFunction('tan', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'tan:',
+                    f'    op mul __f_args_0 __f_args_0 57.29577951308232',
                     f'    op tan __f_return_value __f_args_0',
                     f'    set @counter __f_tan_callback',
                 ]),
@@ -137,6 +139,7 @@ class Scope:
                 GLSLFunction('asin', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'asin:',
                     f'    op asin __f_return_value __f_args_0',
+                    f'    op mul __f_return_value __f_return_value 0.017453292519943295',
                     f'    set @counter __f_asin_callback',
                 ]),
             ],
@@ -144,6 +147,7 @@ class Scope:
                 GLSLFunction('acos', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'acos:',
                     f'    op acos __f_return_value __f_args_0',
+                    f'    op mul __f_return_value __f_return_value 0.017453292519943295',
                     f'    set @counter __f_acos_callback',
                 ]),
             ],
@@ -151,7 +155,7 @@ class Scope:
                 GLSLFunction('atan', 'float', [GLSLVariable('__f_args_0', 'float')]).add_instructions([
                     f'atan:',
                     f'    op atan __f_return_value __f_args_0',
-                    f'    op mul __f_return_value __f_return_value 0.0174533',
+                    f'    op mul __f_return_value __f_return_value 0.017453292519943295',
                     f'    set @counter __f_atan_callback',
                 ]),
             ],
