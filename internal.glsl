@@ -28,3 +28,27 @@ vec2 abs(vec2 p) {
 float fract(float x) {
     return x - floor(x);
 }
+
+float atan(float y, float x) {
+    if(x > 0.0) {
+        return atan(y / x);
+    } else if(x < 0.0) {
+        if(y >= 0.0) {
+            return atan(y / x) + 3.1415926538;
+        } else if(y < 0.0) {
+            return atan(y / x) - 3.1415926538;
+        }
+    } else if(x == 0.0) {
+        if(y > 0.0) {
+            return 3.1415926538 / 2.0;
+        } else if(y == 0.0) {
+            return -(3.1415926538 / 2.0);
+        }
+    }
+
+    return 0.0;
+}
+
+float atan(vec2 p) {
+    return atan(p.x, p.y);
+}
