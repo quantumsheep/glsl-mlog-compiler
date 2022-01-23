@@ -598,10 +598,6 @@ class GLSLVisitor(ParseTreeVisitor):
             return variable.add_instructions([f'op mul {variable.value} {expression_left.value} {expression_right.value}'])
         if ctx.OPERATOR_DIV() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4']:
-                if expression_left.type != expression_right.type:
-                    raise Exception(
-                        f'Dividing a {expression_left.type} by a {expression_right.type} is not implemented')
-
                 vec_size = {
                     'vec2': 2,
                     'vec3': 3,
@@ -609,9 +605,16 @@ class GLSLVisitor(ParseTreeVisitor):
                 }
                 properties = ['x', 'y', 'z', 'w'][:vec_size[expression_left.type]]
 
-                for property in properties:
-                    variable.add_instructions(
-                        [f'op div {variable.value}.{property} {expression_left.value}.{property} {expression_right.value}.{property}'])
+                if expression_right.type in ['vec2', 'vec3', 'vec4']:
+                    for property in properties:
+                        variable.add_instructions([
+                            f'op div {variable.value}.{property} {expression_left.value}.{property} {expression_right.value}.{property}',
+                        ])
+                else:
+                    for property in properties:
+                        variable.add_instructions([
+                            f'op div {variable.value}.{property} {expression_left.value}.{property} {expression_right.value}',
+                        ])
 
                 return variable
 
