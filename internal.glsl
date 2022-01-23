@@ -12,6 +12,14 @@ float length(float f) {
     return sqrt((f * f) + (f * f));
 }
 
+float step(float edge, float x) {
+    if(x < edge) {
+        return 0.0;
+    }
+
+    return 1.0;
+}
+
 float smoothstep(float edge0, float edge1, float x) {
     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
     return x * x * (3.0 - 2.0 * x);
@@ -33,8 +41,28 @@ vec2 abs(vec2 p) {
     return vec2(length(p.x), length(p.y));
 }
 
+vec2 floor(vec2 p) {
+    return vec2(floor(p.x), floor(p.y));
+}
+
 float fract(float x) {
     return x - floor(x);
+}
+
+vec2 fract(vec2 x) {
+    return x - floor(x);
+}
+
+float mod(float x, float y) {
+    return x - y * floor(x / y);
+}
+
+vec2 mod(vec2 x, vec2 y) {
+    return x - y * floor(x / y);
+}
+
+vec2 mod(vec2 x, float y) {
+    return x - y * floor(x / y);
 }
 
 float atan(float y, float x) {
