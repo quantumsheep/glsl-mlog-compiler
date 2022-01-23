@@ -64,6 +64,11 @@ class GLSLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GLSLParser#while_statement.
+    def visitWhile_statement(self, ctx:GLSLParser.While_statementContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GLSLParser#function_return.
     def visitFunction_return(self, ctx:GLSLParser.Function_returnContext):
         return self.visitChildren(ctx)

@@ -21,6 +21,14 @@ float dot(vec2 a, vec2 b) {
     return a.x * b.x + a.y * b.y;
 }
 
+float abs(float value) {
+    if(value < 0) {
+        return -value;
+    }
+
+    return value;
+}
+
 vec2 abs(vec2 p) {
     return vec2(length(p.x), length(p.y));
 }

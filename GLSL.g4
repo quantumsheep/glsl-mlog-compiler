@@ -14,6 +14,7 @@ function_parameter: variable_type IDENTIFIER;
 statement:
 	block_statement
 	| if_statement
+	| while_statement
 	| (
 		(variable_declaration | expression | function_return) SEMICOLON
 	);
@@ -60,6 +61,8 @@ function_call:
 	| IDENTIFIER '(' (expression (',' expression)*)? ')';
 
 if_statement: IF '(' expression ')' statement (ELSE statement)?;
+
+while_statement: WHILE '(' expression ')' statement;
 
 function_return: RETURN expression;
 

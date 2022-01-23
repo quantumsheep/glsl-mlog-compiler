@@ -43,6 +43,12 @@ class GLSLVariable(Instructions):
         return self
 
 
+class GLSLVariableSwizzled(GLSLVariable):
+    def __init__(self, variable: GLSLVariable, order: List[str]):
+        super().__init__(variable.value, variable.type)
+        self.order = order
+
+
 class GLSLFunction(GLSLVariable):
     def __init__(self, name: str, return_type: str, parameters: List[GLSLVariable] = []):
         super().__init__(name, None)
@@ -417,6 +423,8 @@ class GLSLVisitor(ParseTreeVisitor):
             return self.visitFunction_return(function_return_context)
         elif if_statement_context := ctx.if_statement():
             return self.visitIf_statement(if_statement_context)
+        elif while_statement_context := ctx.while_statement():
+            return self.visitWhile_statement(while_statement_context)
 
         raise Exception("Not implemented")
 
@@ -472,7 +480,7 @@ class GLSLVisitor(ParseTreeVisitor):
         return instructions.add_instructions([f'set {scoped_name} {expression.value}'])
 
     # Visit a parse tree produced by GLSLParser#expression.
-    def visitExpression(self, ctx: GLSLParser.ExpressionContext) -> GLSLVariable:
+    def visitExpression(self, ctx: GLSLParser.ExpressionContext, swizzle: bool = False) -> GLSLVariable:
         if ctx.DOT() is not None:
             expression = self.visitExpression(ctx.expression(0))
             identifier: str = ctx.IDENTIFIER().getText()
@@ -480,6 +488,9 @@ class GLSLVisitor(ParseTreeVisitor):
             properties = ['x', 'y', 'z', 'w']
 
             if expression.type in ['vec2', 'vec3', 'vec4']:
+                if swizzle:
+                    return GLSLVariableSwizzled(expression, list(identifier))
+
                 temp_variable = None
 
                 if identifier in permutations('xy'):
@@ -530,7 +541,9 @@ class GLSLVisitor(ParseTreeVisitor):
             return variable\
                 .add_instructions([f'op sub {variable.value} 0 {expression.value}'])
 
-        expression_left = self.visitExpression(ctx.expression(0))
+        swizzle = ctx.OPERATOR_ASSIGN() is not None
+
+        expression_left = self.visitExpression(ctx.expression(0), swizzle)
         expression_right = self.visitExpression(ctx.expression(1))
 
         variable = GLSLVariable(f'__{self.__inc_counter()}', expression_left.type)\
@@ -546,17 +559,22 @@ class GLSLVisitor(ParseTreeVisitor):
                 }
                 properties = ['x', 'y', 'z', 'w'][:vec_size[expression_left.type]]
 
-                for property in properties:
-                    variable.add_instructions(
-                        [f'set {expression_left.value}.{property} {expression_right.value}.{property}'])
+                if type(expression_left) is GLSLVariableSwizzled:
+                    for property in expression_left.order:
+                        variable.add_instructions([
+                            f'set {expression_left.value}.{property} {expression_right.value}.{properties.pop(0)}',
+                        ])
+                else:
+                    for property in properties:
+                        variable.add_instructions([
+                            f'set {expression_left.value}.{property} {expression_right.value}.{property}',
+                        ])
+
+                return variable
 
             return variable.add_instructions([f'set {expression_left.value} {expression_right.value}'])
         elif ctx.OPERATOR_MUL() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4']:
-                if expression_right.type in ['vec2', 'vec3', 'vec4']:
-                    raise Exception(
-                        f'Multiplying a {expression_left.type} by a {expression_right.type} is not implemented')
-
                 vec_size = {
                     'vec2': 2,
                     'vec3': 3,
@@ -564,9 +582,16 @@ class GLSLVisitor(ParseTreeVisitor):
                 }
                 properties = ['x', 'y', 'z', 'w'][:vec_size[expression_left.type]]
 
-                for property in properties:
-                    variable.add_instructions(
-                        [f'op mul {variable.value}.{property} {expression_left.value}.{property} {expression_right.value}'])
+                if expression_right.type in ['vec2', 'vec3', 'vec4']:
+                    for property in properties:
+                        variable.add_instructions([
+                            f'op mul {variable.value}.{property} {expression_left.value}.{property} {expression_right.value}.{property}',
+                        ])
+                else:
+                    for property in properties:
+                        variable.add_instructions([
+                            f'op mul {variable.value}.{property} {expression_left.value}.{property} {expression_right.value}',
+                        ])
 
                 return variable
 
@@ -647,32 +672,44 @@ class GLSLVisitor(ParseTreeVisitor):
             if expression_left.type in ['vec2', 'vec3', 'vec4'] or expression_right.type in ['vec2', 'vec3', 'vec4']:
                 raise Exception(f'Equal operator is not implemented for vectors')
 
-            return variable.add_instructions([f'op equal {variable.value} {expression_left.value} {expression_right.value}'])
+            return variable\
+                .set_variable_type('bool')\
+                .add_instructions([f'op equal {variable.value} {expression_left.value} {expression_right.value}'])
         elif ctx.OPERATOR_NE() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4'] or expression_right.type in ['vec2', 'vec3', 'vec4']:
                 raise Exception(f'Not Equal operator is not implemented for vectors')
 
-            return variable.add_instructions([f'op notEqual {variable.value} {expression_left.value} {expression_right.value}'])
+            return variable\
+                .set_variable_type('bool')\
+                .add_instructions([f'op notEqual {variable.value} {expression_left.value} {expression_right.value}'])
         elif ctx.OPERATOR_LT() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4'] or expression_right.type in ['vec2', 'vec3', 'vec4']:
                 raise Exception(f'Less Than operator is not implemented for vectors')
 
-            return variable.add_instructions([f'op lessThan {variable.value} {expression_left.value} {expression_right.value}'])
+            return variable\
+                .set_variable_type('bool')\
+                .add_instructions([f'op lessThan {variable.value} {expression_left.value} {expression_right.value}'])
         elif ctx.OPERATOR_GT() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4'] or expression_right.type in ['vec2', 'vec3', 'vec4']:
                 raise Exception(f'Greater Than operator is not implemented for vectors')
 
-            return variable.add_instructions([f'op greaterThan {variable.value} {expression_left.value} {expression_right.value}'])
+            return variable\
+                .set_variable_type('bool')\
+                .add_instructions([f'op greaterThan {variable.value} {expression_left.value} {expression_right.value}'])
         elif ctx.OPERATOR_LE() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4'] or expression_right.type in ['vec2', 'vec3', 'vec4']:
                 raise Exception(f'Less Than operator is not implemented for vectors')
 
-            return variable.add_instructions([f'op lessThanEq {variable.value} {expression_left.value} {expression_right.value}'])
+            return variable\
+                .set_variable_type('bool')\
+                .add_instructions([f'op lessThanEq {variable.value} {expression_left.value} {expression_right.value}'])
         elif ctx.OPERATOR_GE() is not None:
             if expression_left.type in ['vec2', 'vec3', 'vec4'] or expression_right.type in ['vec2', 'vec3', 'vec4']:
                 raise Exception(f'Greater Than operator is not implemented for vectors')
 
-            return variable.add_instructions([f'op greaterThanEq {variable.value} {expression_left.value} {expression_right.value}'])
+            return variable\
+                .set_variable_type('bool')\
+                .add_instructions([f'op greaterThanEq {variable.value} {expression_left.value} {expression_right.value}'])
         else:
             raise Exception("Not implemented")
 
@@ -860,7 +897,7 @@ class GLSLVisitor(ParseTreeVisitor):
                 'vec3': 3,
                 'vec4': 4,
             }
-            properties = ['x', 'y', 'z', 'w'][:vec_size[arg.type]]
+            properties = ['x', 'y', 'z', 'w'][:vec_size[temp_variable.type]]
 
             for property in properties:
                 temp_variable.add_instructions(
@@ -873,9 +910,9 @@ class GLSLVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by GLSLParser#if_statement.
     def visitIf_statement(self, ctx: GLSLParser.If_statementContext):
         counter = self.__inc_counter()
-        label_if = f'__if_{counter}'
-        label_endif = f'__if_{counter}_end'
-        label_else = f'__else_{counter}'
+        label_if = f'_if_{counter}'
+        label_endif = f'_if_{counter}_end'
+        label_else = f'_else_{counter}'
 
         if_instructions = Instructions()
         else_instructions = Instructions()
@@ -913,7 +950,31 @@ class GLSLVisitor(ParseTreeVisitor):
             .add_instructions(if_instructions.instructions)\
             .add_instructions(else_instructions.instructions)
 
+    # Visit a parse tree produced by GLSLParser#while_statement.
+    def visitWhile_statement(self, ctx: GLSLParser.While_statementContext):
+        counter = self.__inc_counter()
+        while_label = f'_while_{counter}'
+        while_end_label = f'_while_{counter}_end'
+
+        expression = self.visitExpression(ctx.expression())
+        statement = self.visitStatement(ctx.statement())
+
+        instructions = Instructions([f'{while_label}:'])\
+            .add_instructions(expression.instructions)
+
+        if expression.type == 'bool':
+            instructions.add_instructions([f'jump {while_end_label} equal {expression.value} false'])
+        else:
+            instructions.add_instructions([f'jump {while_end_label} equal {expression.value} 0'])
+
+        return instructions\
+            .add_instructions(statement.instructions)\
+            .add_instructions([f'jump {while_label} always'])\
+            .add_left_padding(skip=1)\
+            .add_instructions([f'{while_end_label}:'])\
+
     # Visit a parse tree produced by GLSLParser#function_return.
+
     def visitFunction_return(self, ctx: GLSLParser.Function_returnContext):
         variable = self.visitExpression(ctx.expression())
 
